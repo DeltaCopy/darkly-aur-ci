@@ -1,0 +1,144 @@
+# Build Darkly and publish release
+name: Darkly AUR CI
+on:
+  schedule:
+    - cron: "0 00 * * *" # At 00:00 daily
+env:
+  AUR_DARKLY_REPO: https://aur.archlinux.org/darkly.git
+  AUR_DARKLY_BIN_REPO: https://aur.archlinux.org/darkly-bin.git
+  GIT_USER: DeltaCopy
+  GIT_EMAIL: 7x0bb03yq@mozmail.com
+  PACKAGE_UTILS_REPO: darkly-packager
+  RELEASE_TAG: latest
+jobs:
+  darkly-aur-ci:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Checkout local
+        uses: actions/checkout@v4.2.0
+        with:
+          repository: ${{ github.repository }}
+          sparse-checkout: .github/assets
+          sparse-checkout-cone-mode: false
+
+      - name: Checkout packager utils repository
+        uses: actions/checkout@v4.2.0
+        with:
+          repository: ${{ env.GIT_USER }}/${{ env.PACKAGE_UTILS_REPO }}
+          path: packager-utils
+
+      - name: System update
+        run: pacman -Syu --noconfirm
+      - name: Install sudo, git and compile dependencies
+        run: |
+          pacman -Syq sudo git openssh binutils make gcc pkg-config fakeroot plasma-desktop \
+          cmake extra-cmake-modules qt6-base \
+          kdecoration qt6-declarative kcoreaddons \
+          kcmutils kcolorscheme kconfig kguiaddons \
+          kiconthemes kwindowsystem kcmutils5 \
+          frameworkintegration5 kconfigwidgets5 kiconthemes5 \
+          kirigami2 kwindowsystem5 --noconfirm
+
+      - name: Setup build user
+        run: |
+          useradd --create-home --shell /bin/bash builduser -m # Create the builduser
+          passwd -d builduser # Delete the buildusers password
+          printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers # Allow the builduser passwordless sudo
+
+      - name: Create SSH AUR config & clone
+        env:
+          AUR_PRIV: ${{ secrets.AUR_P1 }}
+        run: |
+          mkdir -p /home/builduser/.ssh
+          touch /home/builduser/.ssh/known_hosts
+          cp $GITHUB_WORKSPACE/.github/assets/ssh_config /home/builduser/.ssh/config
+
+          chmod -vR 600 /home/builduser/.ssh/* 
+
+          ssh-keyscan -v -t rsa,ecdsa,ed25519 aur.archlinux.org >>/home/builduser/.ssh/known_hosts
+
+          echo "$AUR_PRIV" > /home/builduser/.ssh/aur
+          chmod -R 600 /home/builduser/.ssh/aur*
+
+          ssh-keygen -vy -f /home/builduser/.ssh/aur > /home/builduser/.ssh/aur.pub
+
+          chown -vR builduser:builduser /home/builduser
+
+      - name: Git clone AUR repos
+        run: |
+          sudo -u builduser bash -c 'git clone ${{ env.AUR_DARKLY_REPO }} /tmp/darkly'
+          sudo -u builduser bash -c 'git clone ${{ env.AUR_DARKLY_BIN_REPO }} /tmp/darkly-bin'
+
+          git config --global --add safe.directory '/tmp/darkly'
+          git config --global --add safe.directory '/tmp/darkly-bin'
+
+          git config --global user.name ${{ env.GIT_USER}}
+          git config --global user.email ${{ env.GIT_EMAIL}}
+
+      - name: Update package files
+        run: |
+          mv $GITHUB_WORKSPACE/packager-utils/{.,}* $GITHUB_WORKSPACE
+          case "${{ env.RELEASE_TAG }}" in
+            latest)
+              python packager.py --dist arch
+              RELEASE_LATEST_VERSION=$(cat packager.log | grep "Latest tag =" | awk -F "=" {'print $2'} | xargs)
+              test ! -z "$RELEASE_LATEST_VERSION" && echo "RELEASE_VERSION=${RELEASE_LATEST_VERSION#?}" | tee -a "$GITHUB_ENV" || exit 1
+            ;;
+            *)
+              python packager.py --dist arch --tag ${{ env.RELEASE_TAG }}
+              RELEASE_LATEST_VERSION=$(cat packager.log | grep "Latest tag =" | awk -F "=" {'print $2'} | xargs)
+              test ! -z "$RELEASE_LATEST_VERSION" && echo "RELEASE_VERSION=${RELEASE_LATEST_VERSION#?}" | tee -a "$GITHUB_ENV" || exit 1
+            ;;
+          esac
+
+      # - name: Get latest AUR build information
+      #   run: |
+      #     LATEST_AUR=$(curl -Ls "https://aur.archlinux.org/rpc/v5/info?arg[]=darkly" | python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["results"][0]["Version"]);')
+
+      #     echo "Latest AUR version = ${LATEST_AUR%-*}"
+
+      #     if [[ ${LATEST_AUR%-*} < ${{ env.RELEASE_VERSION }} ]] || [[ -z ${LATEST_AUR%-*} ]]; then
+      #       echo "PUBLISH=true" >> "$GITHUB_ENV"
+      #     else
+      #       echo "PUBLISH=false" >> "$GITHUB_ENV"
+      #     fi
+
+      - name: Copy modified makepkg.conf over to /etc/
+        run: cp $GITHUB_WORKSPACE/.github/assets/makepkg.conf /etc/makepkg.conf
+
+      - name: Copy generated output files for darkly to /tmp for builduser to access
+        run: |
+          cp -f output/AUR/darkly/PKGBUILD /tmp/darkly
+          cp -f output/AUR/darkly/.SRCINFO /tmp/darkly
+          chown -R builduser:builduser /tmp/darkly
+
+      - name: Copy generated output files for darkly-bin to /tmp for builduser to access
+        run: |
+          cp -f output/AUR/darkly-bin/PKGBUILD /tmp/darkly-bin
+          cp -f output/AUR/darkly-bin/.SRCINFO /tmp/darkly-bin
+          chown -R builduser:builduser /tmp/darkly-bin
+
+      - name: Test darkly build
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly; makepkg -s; test $? -eq 0 && touch /tmp/.darklybuild'
+          test $(git -C /tmp/darkly status -s PKGBUILD | wc -l) -gt 0 && echo "DARKLY_MODIFIED=true" >> "$GITHUB_ENV"
+          test -f /tmp/.darklybuild && echo "DARKLY_BUILD_STATUS=0" >> "$GITHUB_ENV"
+
+      - name: Test darkly-bin build
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s; test $? -eq 0 && touch /tmp/.darklybin-build'
+          test $(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l) -gt 0 && echo "DARKLY_BIN_MODIFIED=true" >> "$GITHUB_ENV"
+          test -f /tmp/.darklybin-build && echo "DARKLY_BIN_BUILD_STATUS=0" >> "$GITHUB_ENV"
+
+      - name: Publish AUR package darkly
+        if: env.DARKLY_BUILD_STATUS == 0 && env.DARKLY_MODIFIED == true
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly; git remote add aur "ssh://aur@aur.archlinux.org/darkly.git"; \
+            git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
+
+      - name: Publish AUR package darkly-bin
+        if: env.DARKLY_BIN_BUILD_STATUS == 0 && env.DARKLY_BIN_MODIFIED == true
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly-bin; git remote add aur "ssh://aur@aur.archlinux.org/darkly-bin.git"; \
+            git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
