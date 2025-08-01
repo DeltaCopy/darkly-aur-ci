@@ -117,37 +117,27 @@ jobs:
           cp -f output/AUR/darkly-bin/.SRCINFO /tmp/darkly-bin
           chown -R builduser:builduser /tmp/darkly-bin
 
-      # - name: Test darkly build
-      #   run: |
-      #     sudo -u builduser bash -c 'cd /tmp/darkly; makepkg -s; test $? -eq 0 && touch /tmp/.darklybuild'
-      #     test $(git -C /tmp/darkly status -s PKGBUILD | wc -l) -gt 0 && echo "DARKLY_MODIFIED=true" >> "$GITHUB_ENV"
-      #     test -f /tmp/.darklybuild && echo "DARKLY_BUILD_STATUS=0" >> "$GITHUB_ENV"
+      - name: Test darkly build
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly; makepkg -s; test $? -eq 0 && touch /tmp/.darklybuild'
+          test $(git -C /tmp/darkly status -s PKGBUILD | wc -l) -gt 0 && echo "DARKLY_MODIFIED=true" >> "$GITHUB_ENV"
+          test -f /tmp/.darklybuild && echo "DARKLY_BUILD_STATUS=0" >> "$GITHUB_ENV"
 
       - name: Test darkly-bin build
         run: |
           sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s; test $? -eq 0 && touch /tmp/.darklybin-build'
           ls -lart /tmp/
           test $(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l) -gt 0 && echo "DARKLY_BIN_MODIFIED=true" >> "$GITHUB_ENV"
-          
-          test $(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l) -gt 0 && echo "Modified=True"
-         
           test -f /tmp/.darklybin-build && echo "DARKLY_BIN_BUILD_STATUS=0" >> "$GITHUB_ENV"
         
-      
-      - name: Test environment variables
+      - name: Publish AUR package darkly
+        if: env.DARKLY_BUILD_STATUS == 0 && env.DARKLY_MODIFIED == 'true'
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly; git remote add aur "ssh://aur@aur.archlinux.org/darkly.git"; \
+            git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
+
+      - name: Publish AUR package darkly-bin
         if: env.DARKLY_BIN_BUILD_STATUS == 0 && env.DARKLY_BIN_MODIFIED == 'true'
         run: |
-          echo "The value of DARKLY_BIN_MODIFIED is $DARKLY_BIN_MODIFIED"
-          echo "The value of DARKLY_BIN_BUILD_STATUS is $DARKLY_BIN_BUILD_STATUS"
-
-      # - name: Publish AUR package darkly
-      #   if: env.DARKLY_BUILD_STATUS == 0 && env.DARKLY_MODIFIED == true
-      #   run: |
-      #     sudo -u builduser bash -c 'cd /tmp/darkly; git remote add aur "ssh://aur@aur.archlinux.org/darkly.git"; \
-      #       git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
-
-      # - name: Publish AUR package darkly-bin
-      #   if: env.DARKLY_BIN_BUILD_STATUS == 0 && env.DARKLY_BIN_MODIFIED == true
-      #   run: |
-      #     sudo -u builduser bash -c 'cd /tmp/darkly-bin; git remote add aur "ssh://aur@aur.archlinux.org/darkly-bin.git"; \
-      #       git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
+          sudo -u builduser bash -c 'cd /tmp/darkly-bin; git remote add aur "ssh://aur@aur.archlinux.org/darkly-bin.git"; \
+            git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
