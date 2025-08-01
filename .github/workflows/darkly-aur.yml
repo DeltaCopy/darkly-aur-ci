@@ -129,9 +129,9 @@ jobs:
           ls -lart /tmp/
           test $(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l) -gt 0 && echo "DARKLY_BIN_MODIFIED=true" >> "$GITHUB_ENV"
           git -C /tmp/darkly-bin status -s PKGBUILD | wc -l
-          echo "${{ env.DARKLY_BIN_MODIFIED }}"
+          echo "env 1 = ${{ env.DARKLY_BIN_MODIFIED }}"
           test -f /tmp/.darklybin-build && echo "DARKLY_BIN_BUILD_STATUS=0" >> "$GITHUB_ENV"
-          echo "${{ env.DARKLY_BIN_BUILD_STATUS }}"
+          echo "env 2 = ${{ env.DARKLY_BIN_BUILD_STATUS }}"
 
       # - name: Publish AUR package darkly
       #   if: env.DARKLY_BUILD_STATUS == 0 && env.DARKLY_MODIFIED == true
