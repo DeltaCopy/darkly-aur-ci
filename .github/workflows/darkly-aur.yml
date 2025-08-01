@@ -128,10 +128,16 @@ jobs:
           sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s; test $? -eq 0 && touch /tmp/.darklybin-build'
           ls -lart /tmp/
           test $(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l) -gt 0 && echo "DARKLY_BIN_MODIFIED=true" >> "$GITHUB_ENV"
-          git -C /tmp/darkly-bin status -s PKGBUILD | wc -l
-          echo "env 1 = $DARKLY_BIN_MODIFIED"
+          
+          test $(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l) -gt 0 && echo "Modified=True"
+         
           test -f /tmp/.darklybin-build && echo "DARKLY_BIN_BUILD_STATUS=0" >> "$GITHUB_ENV"
-          echo "env 2 = $DARKLY_BIN_BUILD_STATUS"
+        
+      
+      - name: Test environment variables
+        run: |
+          echo "The value of DARKLY_BIN_MODIFIED is $DARKLY_BIN_MODIFIED"
+          echo "The value of DARKLY_BIN_BUILD_STATUS is $DARKLY_BIN_BUILD_STATUS"
 
       # - name: Publish AUR package darkly
       #   if: env.DARKLY_BUILD_STATUS == 0 && env.DARKLY_MODIFIED == true
