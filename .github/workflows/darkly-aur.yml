@@ -92,18 +92,6 @@ jobs:
             ;;
           esac
 
-      # - name: Get latest AUR build information
-      #   run: |
-      #     LATEST_AUR=$(curl -Ls "https://aur.archlinux.org/rpc/v5/info?arg[]=darkly" | python -c 'import json,sys;obj=json.load(sys.stdin);print(obj["results"][0]["Version"]);')
-
-      #     echo "Latest AUR version = ${LATEST_AUR%-*}"
-
-      #     if [[ ${LATEST_AUR%-*} < ${{ env.RELEASE_VERSION }} ]] || [[ -z ${LATEST_AUR%-*} ]]; then
-      #       echo "PUBLISH=true" >> "$GITHUB_ENV"
-      #     else
-      #       echo "PUBLISH=false" >> "$GITHUB_ENV"
-      #     fi
-
       - name: Copy modified makepkg.conf over to /etc/
         run: cp $GITHUB_WORKSPACE/.github/assets/makepkg.conf /etc/makepkg.conf
 
