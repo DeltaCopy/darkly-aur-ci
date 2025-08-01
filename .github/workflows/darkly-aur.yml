@@ -135,6 +135,7 @@ jobs:
         
       
       - name: Test environment variables
+        if: DARKLY_BIN_BUILD_STATUS == 0 && DARKLY_BIN_MODIFIEDD == true
         run: |
           echo "The value of DARKLY_BIN_MODIFIED is $DARKLY_BIN_MODIFIED"
           echo "The value of DARKLY_BIN_BUILD_STATUS is $DARKLY_BIN_BUILD_STATUS"
