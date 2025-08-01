@@ -134,10 +134,14 @@ jobs:
         if: env.DARKLY_BUILD_STATUS == 0 && env.DARKLY_MODIFIED == 'true'
         run: |
           sudo -u builduser bash -c 'cd /tmp/darkly; git remote add aur "ssh://aur@aur.archlinux.org/darkly.git"; \
-            git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
+          git config --global user.name ${{ env.GIT_USER}}
+          git config --global user.email ${{ env.GIT_EMAIL}}
+          git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
 
       - name: Publish AUR package darkly-bin
         if: env.DARKLY_BIN_BUILD_STATUS == 0 && env.DARKLY_BIN_MODIFIED == 'true'
         run: |
           sudo -u builduser bash -c 'cd /tmp/darkly-bin; git remote add aur "ssh://aur@aur.archlinux.org/darkly-bin.git"; \
-            git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
+          git config --global user.name ${{ env.GIT_USER}}
+          git config --global user.email ${{ env.GIT_EMAIL}}
+          git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
