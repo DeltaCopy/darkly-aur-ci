@@ -4,7 +4,7 @@ on: workflow_dispatch
 env:
   BUILD_REPO: https://github.com/Bali10050/darkly
 jobs:
-  vinyl-aur-tester:
+  darkly-aur-ci-tester:
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
