@@ -1,7 +1,8 @@
 # darkly-aur-ci
 
 Scheduled pipeline (runs daily at 12PM) to publish updated PKGBUILD/s for darkly and darkly-bin AUR packages.
-Upstream repository - https://github.com/Bali10050/Darkly
+
+Upstream repository: https://github.com/Bali10050/Darkly
 
 AUR packages:
 
