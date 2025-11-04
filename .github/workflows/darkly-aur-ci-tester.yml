@@ -40,6 +40,8 @@ jobs:
           latest_release_tag=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags $BUILD_REPO '*.*' \
                       | tail --lines=1 | cut --delimiter='/' --fields=3)
 
+          mkdir -p /tmp/darkly/ /tmp/darkly-bin
+
           cp $GITHUB_WORKSPACE/.github/assets/darkly/PKGBUILD.template /tmp/darkly/PKGBUILD
           cp $GITHUB_WORKSPACE/.github/assets/darkly/.SRCINFO.template /tmp/darkly/.SRCINFO
 
