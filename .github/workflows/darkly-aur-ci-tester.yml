@@ -50,6 +50,7 @@ jobs:
 
           if [ ! -z $latest_release_tag ]; then
             latest_tag=$(echo $latest_release_tag | sed 's/v//')
+            echo "RELEASE_VERSION=${latest_release_tag}" >> "$GITHUB_ENV"
             sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/PKGBUILD
             sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/.SRCINFO
             
@@ -62,7 +63,7 @@ jobs:
             sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly-bin/PKGBUILD
             sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly-bin/.SRCINFO
             
-            sha256sum_darkly_bin=$(curl -Ls $BUILD_REPO/releases/download/v${latest_tag}/darkly-${version}-x86_64.pkg.zst | sha256sum | awk {'print $1'})
+            sha256sum_darkly_bin=$(curl -Ls $BUILD_REPO/releases/download/v${latest_tag}/darkly-${latest_tag}-x86_64.pkg.zst | sha256sum | awk {'print $1'})
 
             sed -i 's/${sha256sums}/'${sha256sum_darkly_bin}'/' /tmp/darkly-bin/PKGBUILD
             sed -i 's/${sha256sums}/'${sha256sum_darkly_bin}'/' /tmp/darkly-bin/.SRCINFO
