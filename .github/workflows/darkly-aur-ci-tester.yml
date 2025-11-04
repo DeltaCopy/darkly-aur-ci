@@ -24,7 +24,7 @@ jobs:
       - name: Install base-devel package
         run: |
           # base-devel includes build dependencies (fakeroot, make, gcc, pkgconf)
-          pacman -Syq base-devel --noconfirm
+          pacman -Syq base-devel git --noconfirm
 
       - name: Setup build user
         run: |
