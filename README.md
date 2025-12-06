@@ -4,6 +4,8 @@ Scheduled pipeline (runs daily at ~12PM) to publish updated PKGBUILD/s for darkl
 
 Upstream repository: https://github.com/Bali10050/Darkly
 
+## Plasma 6.5 or above is required
+
 AUR packages:
 
 - https://aur.archlinux.org/packages/darkly
