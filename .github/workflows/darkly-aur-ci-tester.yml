@@ -1,0 +1,88 @@
+# Build Darkly and publish release
+name: Darkly AUR CI Tester
+on: workflow_dispatch
+env:
+  BUILD_REPO: https://github.com/Bali10050/darkly
+jobs:
+  darkly-aur-ci-tester:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Checkout local
+        uses: actions/checkout@v4.2.0
+        with:
+          repository: ${{ github.repository }}
+          sparse-checkout: .github/assets
+          sparse-checkout-cone-mode: false
+      
+      - name: Initialize pacman-key
+        run: pacman-key --init
+
+      - name: System update
+        run: pacman -Syu --noconfirm
+
+      - name: Install base-devel package
+        run: |
+          # base-devel includes build dependencies (fakeroot, make, gcc, pkgconf)
+          pacman -Syq base-devel git --noconfirm
+
+      - name: Setup build user
+        run: |
+          useradd --create-home --shell /bin/bash builduser -m # Create the builduser
+          passwd -d builduser # Delete the buildusers password
+          printf 'builduser ALL=(ALL) ALL\n' | tee -a /etc/sudoers # Allow the builduser passwordless sudo
+
+      - name: Set parallel makeflags
+        run: sed -i 's/.*MAKEFLAGS=.*/MAKEFLAGS="-j $(nproc)"/' /etc/makepkg.conf
+
+      - name: Update package files
+        run: |
+          latest_release_tag=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags $BUILD_REPO '*.*' \
+                      | tail --lines=1 | cut --delimiter='/' --fields=3)
+
+          mkdir -p /tmp/darkly/ /tmp/darkly-bin
+
+          cp $GITHUB_WORKSPACE/.github/assets/darkly/PKGBUILD.template /tmp/darkly/PKGBUILD
+          cp $GITHUB_WORKSPACE/.github/assets/darkly/.SRCINFO.template /tmp/darkly/.SRCINFO
+
+          cp $GITHUB_WORKSPACE/.github/assets/darkly-bin/PKGBUILD.template /tmp/darkly-bin/PKGBUILD
+          cp $GITHUB_WORKSPACE/.github/assets/darkly-bin/.SRCINFO.template /tmp/darkly-bin/.SRCINFO
+
+          if [ ! -z $latest_release_tag ]; then
+            latest_tag=$(echo $latest_release_tag | sed 's/v//')
+            echo "RELEASE_VERSION=${latest_release_tag}" >> "$GITHUB_ENV"
+            sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/PKGBUILD
+            sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/.SRCINFO
+            
+            sha256sum_darkly=$(curl -Ls $BUILD_REPO/archive/refs/tags/v${latest_tag}.tar.gz | sha256sum | awk {'print $1'})
+
+            sed -i 's/${sha256sums}/'${sha256sum_darkly}'/' /tmp/darkly/PKGBUILD
+            sed -i 's/${sha256sums}/'${sha256sum_darkly}'/' /tmp/darkly/.SRCINFO
+
+
+            sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly-bin/PKGBUILD
+            sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly-bin/.SRCINFO
+            
+            sha256sum_darkly_bin=$(curl -Ls $BUILD_REPO/releases/download/v${latest_tag}/darkly-${latest_tag}-x86_64.pkg.zst | sha256sum | awk {'print $1'})
+
+            sed -i 's/${sha256sums}/'${sha256sum_darkly_bin}'/' /tmp/darkly-bin/PKGBUILD
+            sed -i 's/${sha256sums}/'${sha256sum_darkly_bin}'/' /tmp/darkly-bin/.SRCINFO
+
+          fi
+
+          chown -R builduser:builduser /tmp/darkly
+          chown -R builduser:builduser /tmp/darkly-bin
+
+          echo "Print darkly pkgbuild"
+          cat /tmp/darkly/PKGBUILD
+
+          echo "Print darkly-bin pkgbuild"
+          cat /tmp/darkly-bin/PKGBUILD
+
+      - name: Test darkly build & install
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly; makepkg -si --noconfirm'
+
+      - name: Test darkly-bin build & install
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s --noconfirm'
