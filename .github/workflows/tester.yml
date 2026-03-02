@@ -41,7 +41,7 @@ jobs:
       - name: Update README
         run: |
           echo ${{ steps.step_version.outputs.VERSION }}
-          cat << EOF > README2
+          cat << EOF > README.md
             # darkly-aur-ci
 
             Scheduled pipeline (runs daily at ~12PM) to publish updated PKGBUILD/s for darkly and darkly-bin AUR packages.
@@ -62,8 +62,8 @@ jobs:
           EOF
           git config --global user.name $GIT_USER
           git config --global user.email $GIT_EMAIL
-          git add .
-          git commit --amend --no-edit -m "Update version"
+          git add README.md
+          git commit --amend --no-edit -m "[CI]: Update version"
           git push --force -v
   TestPackages:
     needs: UpdateReadme
