@@ -106,6 +106,7 @@ jobs:
           cp $GITHUB_WORKSPACE/.github/assets/darkly-bin/PKGBUILD.template /tmp/darkly-bin/PKGBUILD
           cp $GITHUB_WORKSPACE/.github/assets/darkly-bin/.SRCINFO.template /tmp/darkly-bin/.SRCINFO
 
+          echo ${{ needs.UpdateReadme.outputs.VERSION }}
 
           latest_tag=${{ needs.UpdateReadme.outputs.VERSION }}| sed 's/v//'
 
