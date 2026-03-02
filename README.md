@@ -14,4 +14,6 @@
 
   [![Darkly AUR CI](https://github.com/DeltaCopy/darkly-aur-ci/actions/workflows/darkly-aur-ci.yml/badge.svg)](https://github.com/DeltaCopy/darkly-aur-ci/actions/workflows/darkly-aur-ci.yml)
 
-  Latest version: v0.5.33
+
+  ## Latest version
+  v0.5.33
