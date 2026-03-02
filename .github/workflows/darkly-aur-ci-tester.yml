@@ -136,10 +136,10 @@ jobs:
           echo "Print darkly-bin pkgbuild"
           cat /tmp/darkly-bin/PKGBUILD
 
-      # - name: Test darkly build & install
-      #   run: |
-      #     sudo -u builduser bash -c 'cd /tmp/darkly; makepkg -si --noconfirm'
+      - name: Test darkly build & install
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly; makepkg -si --noconfirm'
 
-      # - name: Test darkly-bin build & install
-      #   run: |
-      #     sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s --noconfirm'
+      - name: Test darkly-bin build & install
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s --noconfirm'
