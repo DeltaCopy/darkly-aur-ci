@@ -7,7 +7,7 @@ env:
   GIT_USER: DeltaCopy
   GIT_EMAIL: ecto1@duck.com
 jobs:
-  UpdateReadme:
+  GetLatestVersion:
     runs-on: ubuntu-latest
     outputs:
       VERSION: ${{ steps.step_version.outputs.VERSION }}
@@ -68,7 +68,7 @@ jobs:
           git commit --allow-empty -m "[Darkly AUR CI]: Update version"
           git push --force -v
   TestPackages:
-    needs: UpdateReadme
+    needs: GetLatestVersion
     runs-on: ubuntu-latest
     container: archlinux:latest
     steps:
@@ -106,9 +106,9 @@ jobs:
           cp $GITHUB_WORKSPACE/.github/assets/darkly-bin/PKGBUILD.template /tmp/darkly-bin/PKGBUILD
           cp $GITHUB_WORKSPACE/.github/assets/darkly-bin/.SRCINFO.template /tmp/darkly-bin/.SRCINFO
 
-          echo ${{ needs.UpdateReadme.outputs.VERSION }}
+          echo ${{ needs.GetLatestVersion.outputs.VERSION }}
 
-          latest_tag=$(echo ${{ needs.UpdateReadme.outputs.VERSION }}| sed 's/v//)'
+          latest_tag=$(echo ${{ needs.GetLatestVersion.outputs.VERSION }}| sed 's/v//)'
 
           sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/PKGBUILD
           sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/.SRCINFO
