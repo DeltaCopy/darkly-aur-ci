@@ -63,8 +63,8 @@ jobs:
           git config --global user.name $GIT_USER
           git config --global user.email $GIT_EMAIL
           git add README.md
-          git commit --amend --no-edit -m "[CI]: Update version"
-          git push --force -v
+          git commit --allow-empty -m "[CI]: Update version"
+          git push -v
   TestPackages:
     needs: UpdateReadme
     runs-on: ubuntu-latest
