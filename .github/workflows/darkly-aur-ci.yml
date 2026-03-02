@@ -1,17 +1,77 @@
 # Build Darkly and publish release
 name: Darkly AUR CI
-on:
-  schedule:
-    - cron: "0 00 * * *" # At 00:00 daily
+on: workflow_dispatch
 env:
   AUR_DARKLY_REPO: https://aur.archlinux.org/darkly.git
   AUR_DARKLY_BIN_REPO: https://aur.archlinux.org/darkly-bin.git
   GIT_USER: DeltaCopy
   GIT_EMAIL: 7x0bb03yq@mozmail.com
-  BUILD_REPO: https://github.com/Bali10050/darkly
+  REPO_DEV: Bali10050
+  REPO_NAME: darkly
 jobs:
-  darkly-aur-ci:
+  GetLatestVersion:
     runs-on: ubuntu-latest
+    outputs:
+      VERSION: ${{ steps.step_version.outputs.VERSION }}
+    steps:
+      - name: Install jq
+        run: sudo apt-get update -y && sudo apt-get install -y jq
+      - name: Get latest version
+        id: step_version
+        run: |
+          # get latest release tag from remote
+
+           curl -s https://api.github.com/repos/$REPO_DEV/$REPO_NAME/releases/latest |  jq -r '.tag_name'
+
+           latest_release_tag=$(curl -s https://api.github.com/repos/$REPO_DEV/$REPO_NAME/releases/latest |  jq -r '.tag_name')
+
+           echo "INFO: Latest tag = $latest_release_tag"
+
+           if [ ! -z $latest_release_tag ]; then
+             latest_tag=$(echo $latest_release_tag | sed 's/v//')
+             echo "VERSION=${latest_release_tag}" >> "$GITHUB_OUTPUT"
+           else
+             echo "Latest tag is unknown"
+             exit 1
+           fi
+
+      - name: Checkout local
+        uses: actions/checkout@v6.0.2
+        with:
+          repository: ${{ github.repository }}
+
+      - name: Update README
+        run: |
+          echo ${{ steps.step_version.outputs.VERSION }}
+          cat << EOF > README.md
+            # darkly-aur-ci
+
+            Scheduled pipeline (runs daily at ~12PM) to publish updated PKGBUILD/s for darkly and darkly-bin AUR packages.
+
+            Upstream repository: https://github.com/Bali10050/Darkly
+
+            ## Plasma >=6.5 is required
+
+            AUR packages:
+
+            - https://aur.archlinux.org/packages/darkly
+
+            - https://aur.archlinux.org/packages/darkly-bin
+
+            [![Darkly AUR CI](https://github.com/DeltaCopy/darkly-aur-ci/actions/workflows/darkly-aur-ci.yml/badge.svg)](https://github.com/DeltaCopy/darkly-aur-ci/actions/workflows/darkly-aur-ci.yml)
+
+
+            ## Latest version
+            ${{ steps.step_version.outputs.VERSION }}
+          EOF
+          git config --global user.name $GIT_USER
+          git config --global user.email ecto1@duck.com
+          git add README.md
+          git commit --allow-empty -m "[Darkly AUR CI]: Update version"
+          git push --force -v
+  UpdatePackages:
+    runs-on: ubuntu-latest
+    needs: GetLatestVersion
     container: archlinux:latest
     steps:
       - name: Checkout local
@@ -67,8 +127,9 @@ jobs:
 
       - name: Update package files
         run: |
-          latest_release_tag=$(git -c 'versionsort.suffix=-' ls-remote --exit-code --refs --sort='version:refname' --tags $BUILD_REPO '*.*' \
-                      | tail --lines=1 | cut --delimiter='/' --fields=3)
+          echo ${{ needs.GetLatestVersion.outputs.VERSION }}
+
+          latest_tag=$(echo ${{ needs.GetLatestVersion.outputs.VERSION }}| sed 's/v//')
 
           cp $GITHUB_WORKSPACE/.github/assets/darkly/PKGBUILD.template /tmp/darkly/PKGBUILD
           cp $GITHUB_WORKSPACE/.github/assets/darkly/.SRCINFO.template /tmp/darkly/.SRCINFO
@@ -82,7 +143,7 @@ jobs:
             sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/PKGBUILD
             sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly/.SRCINFO
             
-            sha256sum_darkly=$(curl -Ls $BUILD_REPO/archive/refs/tags/v${latest_tag}.tar.gz | sha256sum | awk {'print $1'})
+            sha256sum_darkly=$(curl -Ls https://github.com/$REPO_DEV/$REPO_NAME/archive/refs/tags/v${latest_tag}.tar.gz | sha256sum | awk {'print $1'})
 
             sed -i 's/${sha256sums}/'${sha256sum_darkly}'/' /tmp/darkly/PKGBUILD
             sed -i 's/${sha256sums}/'${sha256sum_darkly}'/' /tmp/darkly/.SRCINFO
@@ -92,7 +153,7 @@ jobs:
             sed -i 's/${version}/'${latest_tag}'/' /tmp/darkly-bin/.SRCINFO
             sed -i 's/darkly-${version}/darkly-'${latest_tag}'/' /tmp/darkly-bin/.SRCINFO
             
-            sha256sum_darkly_bin=$(curl -Ls $BUILD_REPO/releases/download/v${latest_tag}/darkly-${latest_tag}-x86_64.pkg.zst | sha256sum | awk {'print $1'})
+            sha256sum_darkly_bin=$(curl -Ls  https://github.com/$REPO_DEV/$REPO_NAME/releases/download/v${latest_tag}/darkly-${latest_tag}-x86_64.pkg.zst | sha256sum | awk {'print $1'})
 
             sed -i 's/${sha256sums}/'${sha256sum_darkly_bin}'/' /tmp/darkly-bin/PKGBUILD
             sed -i 's/${sha256sums}/'${sha256sum_darkly_bin}'/' /tmp/darkly-bin/.SRCINFO
@@ -121,6 +182,11 @@ jobs:
         run: |
           sudo -u builduser bash -c 'cd /tmp/darkly; makepkg -s --noconfirm; test $? -eq 0 && touch /tmp/.darklybuild'
           echo "DARKLY_MODIFIED=$(git -C /tmp/darkly status -s PKGBUILD | wc -l)" >> "$GITHUB_ENV"
+      
+      - name: Test darkly-bin build
+        run: |
+          sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s --noconfirm; test $? -eq 0 && touch /tmp/.darklybin-build'
+          echo "DARKLY_BIN_MODIFIED=$(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l)" >> "$GITHUB_ENV"
 
       - name: Publish AUR package darkly
         if: env.DARKLY_MODIFIED == 1
@@ -132,11 +198,6 @@ jobs:
             git config --global user.email ${{ env.GIT_EMAIL}}
             git add -fv PKGBUILD .SRCINFO && git commit -m "[GitHub DeltaCopy/darkly-aur-ci]: Version ${{ env.RELEASE_VERSION }}" && git push -v aur master'
           fi
-
-      - name: Test darkly-bin build
-        run: |
-          sudo -u builduser bash -c 'cd /tmp/darkly-bin; makepkg -s --noconfirm; test $? -eq 0 && touch /tmp/.darklybin-build'
-          echo "DARKLY_BIN_MODIFIED=$(git -C /tmp/darkly-bin status -s PKGBUILD | wc -l)" >> "$GITHUB_ENV"
 
       - name: Publish AUR package darkly-bin
         if: env.DARKLY_BIN_MODIFIED == 1
