@@ -58,13 +58,15 @@ jobs:
 
             [![Darkly AUR CI](https://github.com/DeltaCopy/darkly-aur-ci/actions/workflows/darkly-aur-ci.yml/badge.svg)](https://github.com/DeltaCopy/darkly-aur-ci/actions/workflows/darkly-aur-ci.yml)
 
-            Latest version: ${{ steps.step_version.outputs.VERSION }}
+
+            ## Latest version
+            ${{ steps.step_version.outputs.VERSION }}
           EOF
           git config --global user.name $GIT_USER
           git config --global user.email $GIT_EMAIL
           git add README.md
           git commit --allow-empty -m "[Darkly AUR CI]: Update version"
-          git push -v
+          git push --force -v
   TestPackages:
     needs: UpdateReadme
     runs-on: ubuntu-latest
