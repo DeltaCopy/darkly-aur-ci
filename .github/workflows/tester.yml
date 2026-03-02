@@ -63,7 +63,7 @@ jobs:
           git config --global user.name $GIT_USER
           git config --global user.email $GIT_EMAIL
           git add README.md
-          git commit --allow-empty -m "[CI]: Update version"
+          git commit --allow-empty -m "[Darkly AUR CI]: Update version"
           git push -v
   TestPackages:
     needs: UpdateReadme
