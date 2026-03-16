@@ -16,4 +16,4 @@
 
 
   ## Latest version
-  v0.5.35
+  v0.5.36
