@@ -50,8 +50,6 @@ jobs:
 
             Upstream repository: https://github.com/Bali10050/Darkly
 
-            ## Plasma >=6.5 is required
-
             AUR packages:
 
             - https://aur.archlinux.org/packages/darkly
