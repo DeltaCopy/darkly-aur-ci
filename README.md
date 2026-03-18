@@ -1,10 +1,8 @@
   # darkly-aur-ci
 
-  Scheduled pipeline (runs daily at ~12PM) to publish updated PKGBUILD/s for darkly and darkly-bin AUR packages.
+  Scheduled pipeline to publish updated PKGBUILD/s for darkly and darkly-bin AUR packages.
 
   Upstream repository: https://github.com/Bali10050/Darkly
-
-  ## Plasma >=6.5 is required
 
   AUR packages:
 
@@ -16,4 +14,4 @@
 
 
   ## Latest version
-  v0.5.36
+  <img src="https://img.shields.io/badge/darkly-v0.5.36-orange" alt="darkly-v0.5.36">
