@@ -14,4 +14,4 @@
 
 
   ## Latest version
-  <img src="https://img.shields.io/badge/darkly-v0.5.38-orange" alt="darkly-v0.5.38">
+  <img src="https://img.shields.io/badge/darkly-v0.5.39-orange" alt="darkly-v0.5.39">
