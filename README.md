@@ -4,6 +4,8 @@
 
   Upstream repository: https://github.com/Bali10050/Darkly
 
+  ## Plasma >=6.5 is required
+
   AUR packages:
 
   - https://aur.archlinux.org/packages/darkly
@@ -14,4 +16,4 @@
 
 
   ## Latest version
-  <img src="https://img.shields.io/badge/darkly-v0.5.39-orange" alt="darkly-v0.5.39">
+  v0.5.39
