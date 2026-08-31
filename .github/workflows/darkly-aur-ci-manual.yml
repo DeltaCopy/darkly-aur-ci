@@ -1,5 +1,5 @@
 # Build Darkly and publish release
-name: Darkly AUR CI
+name: Darkly AUR CI Manual
 on: workflow_dispatch
 env:
   AUR_DARKLY_REPO: https://aur.archlinux.org/darkly.git
